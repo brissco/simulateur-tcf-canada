@@ -20,11 +20,34 @@ export default function ExamPage() {
         startExam, setActiveTask, submitExam, resetExam, getTaskConstraints
     } = useExamStore();
 
+    const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
+    const [selectedSubjectId, setSelectedSubjectId] = useState<string>("random");
+    const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+
     const [isStarting, setIsStarting] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const router = useRouter();
     const supabase = createSupabaseBrowserClient();
+
+    // Charger les sujets disponibles
+    useEffect(() => {
+        const fetchSubjects = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from("subjects")
+                    .select("id, title")
+                    .order("created_at", { ascending: false });
+
+                if (data) setAvailableSubjects(data);
+            } catch (e) {
+                console.error("Erreur chargement sujets:", e);
+            } finally {
+                setIsLoadingSubjects(false);
+            }
+        };
+        fetchSubjects();
+    }, [supabase]);
 
     // Créer une session d'examen en DB et démarrer le timer
     const handleStart = async () => {
@@ -33,17 +56,27 @@ export default function ExamPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { router.push("/login"); return; }
 
-            // 1. Sélectionner un sujet aléatoire en base
-            // Utilise l'extension pgcrypto (si dispo) ou simplement random()
-            const { data: subject, error: subjectError } = await (supabase
-                .from("subjects")
-                .select("*") as any)
-                .order('id', { ascending: Math.random() > 0.5 }) // Hack simple si random() n'est pas supporté par le client JS directement
-                .limit(1)
-                .single();
-
-            if (subjectError || !subject) {
-                throw new Error("Impossible de charger un sujet d'examen. Veuillez réessayer plus tard.");
+            // 1. Sélectionner le sujet
+            let subject;
+            if (selectedSubjectId === "random") {
+                // Sélection aléatoire
+                const { data, error } = await (supabase
+                    .from("subjects")
+                    .select("*") as any)
+                    .order('id', { ascending: Math.random() > 0.5 })
+                    .limit(1)
+                    .single();
+                subject = data;
+                if (error || !subject) throw new Error("Impossible de charger un sujet aléatoire.");
+            } else {
+                // Sujet spécifique
+                const { data, error } = await supabase
+                    .from("subjects")
+                    .select("*")
+                    .eq("id", selectedSubjectId)
+                    .single();
+                subject = data;
+                if (error || !subject) throw new Error("Sujet introuvable.");
             }
 
             // 2. Upsert du profil au cas où
@@ -58,7 +91,7 @@ export default function ExamPage() {
                 .upsert({ id: user.id, username }, { onConflict: "id", ignoreDuplicates: true });
 
             // 3. Créer l'examen avec le subject_id
-            const { data: exam, error } = await supabase
+            const { data: exam, error: examError } = await supabase
                 .from("exams")
                 .insert({
                     user_id: user.id,
@@ -67,12 +100,12 @@ export default function ExamPage() {
                 .select("id")
                 .single();
 
-            if (error || !exam) throw new Error(error?.message ?? "Erreur création examen");
+            if (examError || !exam) throw new Error(examError?.message ?? "Erreur création examen");
 
             startExam(exam.id, subject);
         } catch (e) {
             console.error(e);
-            alert(e instanceof Error ? e.message : "Une erreur est survenue");
+            alert(e instanceof Error ? e.message : "Une erreur est survenue lors du démarrage");
         } finally {
             setIsStarting(false);
         }
@@ -121,6 +154,33 @@ export default function ExamPage() {
                         Vous disposez de <strong className="text-brand-300">60 minutes</strong> pour rédiger
                         3 tâches d'expression écrite. Toute aide extérieure est désactivée.
                     </p>
+
+                    {/* Sélection du sujet */}
+                    <div className="mb-8 text-left">
+                        <label className="block text-sm font-semibold text-gray-300 mb-2">
+                            Sélectionner une combinaison :
+                        </label>
+                        <select
+                            value={selectedSubjectId}
+                            onChange={(e) => setSelectedSubjectId(e.target.value)}
+                            disabled={isLoadingSubjects || isStarting}
+                            className="w-full bg-surface-dark border border-surface-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
+                        >
+                            <option value="random">🎲 Aléatoire</option>
+                            {availableSubjects.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    📄 {s.title}
+                                </option>
+                            ))}
+                        </select>
+                        {isLoadingSubjects && (
+                            <p className="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+                                Chargement des combinaisons...
+                            </p>
+                        )}
+                    </div>
+
                     <ul className="mb-8 text-left text-sm text-gray-400 space-y-2">
                         {["Copier-coller désactivé", "Correcteur orthographique désactivé", "Soumission automatique à l'expiration du temps"].map((r) => (
                             <li key={r} className="flex items-center gap-2">
@@ -131,7 +191,7 @@ export default function ExamPage() {
                     </ul>
                     <button
                         onClick={handleStart}
-                        disabled={isStarting}
+                        disabled={isStarting || isLoadingSubjects}
                         className="btn-primary w-full py-3 text-base justify-center"
                     >
                         {isStarting ? "Démarrage..." : "Démarrer l'examen"}
