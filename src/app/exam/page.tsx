@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 export default function ExamPage() {
     const {
         phase, examId, activeTask, tasks, allTasksValid,
-        startExam, setActiveTask, submitExam, resetExam,
+        startExam, setActiveTask, submitExam, resetExam, getTaskConstraints
     } = useExamStore();
 
     const [isStarting, setIsStarting] = useState(false);
@@ -33,8 +33,18 @@ export default function ExamPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { router.push("/login"); return; }
 
-            // Upsert du profil au cas où le trigger n'aurait pas tourné
-            // (ex : compte créé avant l'application des migrations)
+            // 1. Sélectionner un sujet aléatoire en base
+            const { data: subject, error: subjectError } = await supabase
+                .from("subjects")
+                .select("*")
+                .limit(1)
+                .single();
+
+            if (subjectError || !subject) {
+                throw new Error("Impossible de charger un sujet d'examen. Veuillez réessayer plus tard.");
+            }
+
+            // 2. Upsert du profil au cas où
             const username =
                 user.user_metadata?.username ??
                 user.user_metadata?.full_name ??
@@ -45,17 +55,22 @@ export default function ExamPage() {
                 .from("profiles")
                 .upsert({ id: user.id, username }, { onConflict: "id", ignoreDuplicates: true });
 
+            // 3. Créer l'examen avec le subject_id
             const { data: exam, error } = await supabase
                 .from("exams")
-                .insert({ user_id: user.id })
+                .insert({
+                    user_id: user.id,
+                    subject_id: subject.id
+                })
                 .select("id")
                 .single();
 
             if (error || !exam) throw new Error(error?.message ?? "Erreur création examen");
 
-            startExam(exam.id);
+            startExam(exam.id, subject);
         } catch (e) {
             console.error(e);
+            alert(e instanceof Error ? e.message : "Une erreur est survenue");
         } finally {
             setIsStarting(false);
         }
@@ -125,7 +140,7 @@ export default function ExamPage() {
     }
 
     // ─── Phase Running / Active ───────────────────────────────────────────────
-    const constraints = TASK_CONSTRAINTS.find((c) => c.taskNumber === activeTask)!;
+    const currentConstraints = getTaskConstraints(activeTask);
     const allValid = allTasksValid();
 
     return (
@@ -139,7 +154,7 @@ export default function ExamPage() {
                         <div className="flex gap-1">
                             {([1, 2, 3] as const).map((n) => {
                                 const wc = tasks[n].wordCount;
-                                const c = TASK_CONSTRAINTS.find((x) => x.taskNumber === n)!;
+                                const c = getTaskConstraints(n);
                                 const isValid = wc >= c.minWords && wc <= c.maxWords;
                                 return (
                                     <button
@@ -188,9 +203,9 @@ export default function ExamPage() {
                     </div>
                 )}
                 <div className="mb-4">
-                    <h2 className="text-lg font-semibold text-gray-100">{constraints.label}</h2>
+                    <h2 className="text-lg font-semibold text-gray-100">{currentConstraints.label}</h2>
                 </div>
-                <TaskEditor constraints={constraints} />
+                <TaskEditor constraints={currentConstraints} />
             </main>
         </div>
     );

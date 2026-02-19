@@ -11,11 +11,20 @@ export interface TaskDraft {
     wordCount: number;
 }
 
+export interface Subject {
+    id: string;
+    title: string;
+    task1_prompt: string;
+    task2_prompt: string;
+    task3_prompt: string;
+}
+
 export type ExamPhase = "idle" | "running" | "submitted" | "results";
 
 interface ExamState {
     // Identifiants
     examId: string | null;
+    subject: Subject | null;
 
     // Phase courante
     phase: ExamPhase;
@@ -31,7 +40,7 @@ interface ExamState {
     activeTask: 1 | 2 | 3;
 
     // Actions
-    startExam: (examId: string) => void;
+    startExam: (examId: string, subject: Subject) => void;
     updateTaskContent: (taskNumber: 1 | 2 | 3, content: string) => void;
     setActiveTask: (taskNumber: 1 | 2 | 3) => void;
     tick: () => void;
@@ -59,15 +68,17 @@ export const useExamStore = create<ExamState>()(
         persist(
             (set, get) => ({
                 examId: null,
+                subject: null,
                 phase: "idle",
                 secondsRemaining: EXAM_DURATION_SECONDS,
                 timerStartedAt: null,
                 tasks: createInitialTasks(),
                 activeTask: 1,
 
-                startExam: (examId) => {
+                startExam: (examId, subject) => {
                     set({
                         examId,
+                        subject,
                         phase: "running",
                         secondsRemaining: EXAM_DURATION_SECONDS,
                         timerStartedAt: Date.now(),
@@ -115,6 +126,7 @@ export const useExamStore = create<ExamState>()(
                 resetExam: () => {
                     set({
                         examId: null,
+                        subject: null,
                         phase: "idle",
                         secondsRemaining: EXAM_DURATION_SECONDS,
                         timerStartedAt: null,
@@ -126,7 +138,17 @@ export const useExamStore = create<ExamState>()(
                 // ─── Sélecteurs ───────────────────────────────────────────────────
 
                 getTaskConstraints: (taskNumber) => {
-                    return TASK_CONSTRAINTS.find((t) => t.taskNumber === taskNumber)!;
+                    const { subject } = get();
+                    const base = TASK_CONSTRAINTS.find((t) => t.taskNumber === taskNumber)!;
+
+                    if (subject) {
+                        const prompt = taskNumber === 1 ? subject.task1_prompt :
+                            taskNumber === 2 ? subject.task2_prompt :
+                                subject.task3_prompt;
+                        return { ...base, prompt };
+                    }
+
+                    return base;
                 },
 
                 isTaskValid: (taskNumber) => {
@@ -146,6 +168,7 @@ export const useExamStore = create<ExamState>()(
                 // Ne persiste que les données essentielles
                 partialize: (state) => ({
                     examId: state.examId,
+                    subject: state.subject,
                     phase: state.phase,
                     secondsRemaining: state.secondsRemaining,
                     timerStartedAt: state.timerStartedAt,

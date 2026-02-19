@@ -32,6 +32,7 @@ export interface Database {
                 Row: {
                     id: string;
                     user_id: string;
+                    subject_id: string | null;
                     started_at: string;
                     submitted_at: string | null;
                     is_locked: boolean;
@@ -39,11 +40,13 @@ export interface Database {
                 Insert: {
                     id?: string;
                     user_id: string;
+                    subject_id?: string | null;
                     started_at?: string;
                     submitted_at?: string | null;
                     is_locked?: boolean;
                 };
                 Update: {
+                    subject_id?: string | null;
                     submitted_at?: string | null;
                     is_locked?: boolean;
                 };
@@ -53,6 +56,13 @@ export interface Database {
                         columns: ["user_id"];
                         isOneToOne: false;
                         referencedRelation: "profiles";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "exams_subject_id_fkey";
+                        columns: ["subject_id"];
+                        isOneToOne: false;
+                        referencedRelation: "subjects";
                         referencedColumns: ["id"];
                     }
                 ];
@@ -132,6 +142,31 @@ export interface Database {
                         referencedColumns: ["id"];
                     }
                 ];
+            };
+            subjects: {
+                Row: {
+                    id: string;
+                    title: string;
+                    task1_prompt: string;
+                    task2_prompt: string;
+                    task3_prompt: string;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    title: string;
+                    task1_prompt: string;
+                    task2_prompt: string;
+                    task3_prompt: string;
+                    created_at?: string;
+                };
+                Update: {
+                    title?: string;
+                    task1_prompt?: string;
+                    task2_prompt?: string;
+                    task3_prompt?: string;
+                };
+                Relationships: [];
             };
         };
         Views: Record<string, never>;
