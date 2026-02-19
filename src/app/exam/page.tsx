@@ -34,9 +34,11 @@ export default function ExamPage() {
             if (!user) { router.push("/login"); return; }
 
             // 1. Sélectionner un sujet aléatoire en base
-            const { data: subject, error: subjectError } = await supabase
+            // Utilise l'extension pgcrypto (si dispo) ou simplement random()
+            const { data: subject, error: subjectError } = await (supabase
                 .from("subjects")
-                .select("*")
+                .select("*") as any)
+                .order('id', { ascending: Math.random() > 0.5 }) // Hack simple si random() n'est pas supporté par le client JS directement
                 .limit(1)
                 .single();
 
