@@ -85,7 +85,8 @@ export default function TaskDetailPage({ params }: { params: { taskId: string } 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        await supabase.from("feedbacks").insert({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from("feedbacks") as any).insert({
             task_id: params.taskId,
             author_id: user.id,
             comment: comment.trim(),

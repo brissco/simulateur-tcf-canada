@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  */
 export async function POST(request: NextRequest) {
     try {
-        const supabase = createSupabaseServerClient();
+        const supabase = await createSupabaseServerClient();
 
         // Vérification de session
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -16,8 +16,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
         }
 
-        const body = await request.json();
-        const { examId, tasks } = body as {
+        const body = await request.json() as {
             examId: string;
             tasks: Array<{
                 taskNumber: 1 | 2 | 3;
@@ -25,18 +24,21 @@ export async function POST(request: NextRequest) {
                 wordCount: number;
             }>;
         };
+        const { examId, tasks } = body;
 
         // Vérification que l'examen appartient à l'utilisateur
-        const { data: exam, error: examError } = await supabase
+        const { data: examData, error: examError } = await supabase
             .from("exams")
             .select("id, user_id, is_locked")
             .eq("id", examId)
             .eq("user_id", user.id)
             .single();
 
-        if (examError || !exam) {
+        if (examError || !examData) {
             return NextResponse.json({ error: "Examen introuvable" }, { status: 404 });
         }
+
+        const exam = examData as { id: string; user_id: string; is_locked: boolean };
 
         if (exam.is_locked) {
             return NextResponse.json({ error: "Examen déjà soumis" }, { status: 409 });
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
         // 1. Insérer toutes les tâches
         const taskInserts = tasks.map((t) => ({
             exam_id: examId,
-            task_number: t.taskNumber,
+            task_number: t.taskNumber as number,
             content: t.content,
             word_count: t.wordCount,
         }));
@@ -66,13 +68,11 @@ export async function POST(request: NextRequest) {
             .eq("id", examId);
 
         // 3. Déclencher l'analyse IA en arrière-plan pour chaque tâche
-        //    On ne bloque pas la réponse — le client vérifiera l'état via polling/realtime
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
         if (supabaseUrl && serviceKey && insertedTasks) {
-            // Fire-and-forget : on ne attend pas la réponse IA
-            for (const task of insertedTasks) {
+            for (const task of insertedTasks as Array<{ id: string; task_number: number }>) {
                 const originalTask = tasks.find((t) => t.taskNumber === task.task_number);
                 if (originalTask) {
                     fetch(`${supabaseUrl}/functions/v1/analyze-task`, {
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            taskIds: insertedTasks?.map((t) => t.id) ?? [],
+            taskIds: (insertedTasks as Array<{ id: string }> | null)?.map((t) => t.id) ?? [],
         });
     } catch (error) {
         console.error("[submit-exam]", error);

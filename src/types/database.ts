@@ -1,6 +1,7 @@
 /**
  * Types TypeScript dérivés du schéma PostgreSQL Supabase.
  * Ces types servent d'interface entre la DB et l'application.
+ * Format compatible Supabase JS v2 + PostgREST v12.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -25,6 +26,7 @@ export interface Database {
                     username?: string;
                     nclc_target?: number;
                 };
+                Relationships: [];
             };
             exams: {
                 Row: {
@@ -45,36 +47,54 @@ export interface Database {
                     submitted_at?: string | null;
                     is_locked?: boolean;
                 };
+                Relationships: [
+                    {
+                        foreignKeyName: "exams_user_id_fkey";
+                        columns: ["user_id"];
+                        isOneToOne: false;
+                        referencedRelation: "profiles";
+                        referencedColumns: ["id"];
+                    }
+                ];
             };
             tasks: {
                 Row: {
                     id: string;
                     exam_id: string;
-                    task_number: 1 | 2 | 3;
+                    task_number: number;
                     content: string;
                     word_count: number;
                     ai_score: string | null;
-                    ai_feedback: AIFeedback | null;
+                    ai_feedback: Json | null;
                     ai_analyzed_at: string | null;
                     created_at: string;
                 };
                 Insert: {
                     id?: string;
                     exam_id: string;
-                    task_number: 1 | 2 | 3;
+                    task_number: number;
                     content: string;
                     word_count: number;
                     ai_score?: string | null;
-                    ai_feedback?: AIFeedback | null;
+                    ai_feedback?: Json | null;
                     ai_analyzed_at?: string | null;
                 };
                 Update: {
                     content?: string;
                     word_count?: number;
                     ai_score?: string | null;
-                    ai_feedback?: AIFeedback | null;
+                    ai_feedback?: Json | null;
                     ai_analyzed_at?: string | null;
                 };
+                Relationships: [
+                    {
+                        foreignKeyName: "tasks_exam_id_fkey";
+                        columns: ["exam_id"];
+                        isOneToOne: false;
+                        referencedRelation: "exams";
+                        referencedColumns: ["id"];
+                    }
+                ];
             };
             feedbacks: {
                 Row: {
@@ -96,8 +116,28 @@ export interface Database {
                     comment?: string;
                     rating?: number;
                 };
+                Relationships: [
+                    {
+                        foreignKeyName: "feedbacks_task_id_fkey";
+                        columns: ["task_id"];
+                        isOneToOne: false;
+                        referencedRelation: "tasks";
+                        referencedColumns: ["id"];
+                    },
+                    {
+                        foreignKeyName: "feedbacks_author_id_fkey";
+                        columns: ["author_id"];
+                        isOneToOne: false;
+                        referencedRelation: "profiles";
+                        referencedColumns: ["id"];
+                    }
+                ];
             };
         };
+        Views: Record<string, never>;
+        Functions: Record<string, never>;
+        Enums: Record<string, never>;
+        CompositeTypes: Record<string, never>;
     };
 }
 

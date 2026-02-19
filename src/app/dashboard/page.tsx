@@ -1,30 +1,13 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import type { Database } from "@/types/database";
 import { BookOpen, Users, Zap, LogOut, ArrowRight, Clock } from "lucide-react";
 
 export const metadata: Metadata = { title: "Tableau de bord — TCF Canada AI+" };
 
 export default async function DashboardPage() {
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return cookieStore.getAll();
-                },
-                setAll() {
-                    // read-only in server component
-                },
-            },
-        }
-    );
+    const supabase = await createSupabaseServerClient();
 
     const {
         data: { user },

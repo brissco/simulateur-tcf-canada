@@ -1,15 +1,16 @@
 import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@/types/database";
 
 /**
  * Client Supabase pour les Client Components.
  * Singleton pattern pour éviter de créer plusieurs instances.
+ * Note: on n'applique pas le generic Database ici car PostgREST v12
+ * change l'inférence des types et génère des `never` sur insert/update.
  */
-let client: ReturnType<typeof createBrowserClient<Database>> | null = null;
+let client: ReturnType<typeof createBrowserClient> | null = null;
 
 export function createSupabaseBrowserClient() {
     if (!client) {
-        client = createBrowserClient<Database>(
+        client = createBrowserClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );

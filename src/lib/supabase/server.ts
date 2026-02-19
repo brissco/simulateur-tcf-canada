@@ -1,33 +1,29 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "@/types/database";
 
 /**
  * Client Supabase pour Server Components et Route Handlers.
- * Lit et écrit les cookies via next/headers.
+ * Lit et écrit les cookies via next/headers (API async Next.js 15).
+ * Note: on n'applique pas le generic Database ici car PostgREST v12
+ * change l'inférence des types et génère des `never` sur insert/update.
  */
-export function createSupabaseServerClient() {
-    const cookieStore = cookies();
-    return createServerClient<Database>(
+export async function createSupabaseServerClient() {
+    const cookieStore = await cookies();
+    return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                get(name) {
-                    return cookieStore.get(name)?.value;
+                getAll() {
+                    return cookieStore.getAll();
                 },
-                set(name, value, options) {
+                setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
                     try {
-                        cookieStore.set({ name, value, ...options });
-                    } catch (_) {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
+                        );
+                    } catch {
                         // En Server Component, set() peut être ignoré
-                    }
-                },
-                remove(name, options) {
-                    try {
-                        cookieStore.set({ name, value: "", ...options });
-                    } catch (_) {
-                        // Idem
                     }
                 },
             },
