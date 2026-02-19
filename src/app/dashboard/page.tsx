@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { BookOpen, Users, Zap, LogOut, ArrowRight, Clock } from "lucide-react";
+import { BookOpen, Users, Zap, LogOut, ArrowRight, Clock, FileText } from "lucide-react";
 
 export const metadata: Metadata = { title: "Tableau de bord — TCF Canada AI+" };
 
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Quick actions */}
-                <div className="grid gap-6 md:grid-cols-3 mb-12">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-12">
                     {/* Exam card */}
                     <Link
                         href="/exam"
@@ -95,6 +95,25 @@ export default async function DashboardPage() {
                         </p>
                         <span className="flex items-center gap-1 text-xs text-amber-400 font-medium">
                             Pratiquer <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                    </Link>
+
+                    {/* Methodology card */}
+                    <Link
+                        href="/methodology"
+                        className="group card border border-blue-800/40 bg-blue-950/30 hover:border-blue-600/60 hover:bg-blue-950/50 transition-all duration-200 hover:scale-[1.02]"
+                    >
+                        <div className="mb-4 inline-flex rounded-xl p-2.5 bg-blue-950/30">
+                            <FileText className="h-7 w-7 text-blue-400" />
+                        </div>
+                        <h2 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-300 transition-colors">
+                            Méthodologie
+                        </h2>
+                        <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                            Apprenez les règles et astuces pour réussir les 3 tâches de l'examen.
+                        </p>
+                        <span className="flex items-center gap-1 text-xs text-blue-400 font-medium">
+                            Consulter <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                         </span>
                     </Link>
 
