@@ -33,6 +33,13 @@ export default async function DashboardPage() {
                         <span className="text-sm text-gray-400 hidden sm:block">
                             👋 {displayName}
                         </span>
+                        <Link
+                            href="/admin/sujets"
+                            className="btn-secondary py-2 px-4 text-xs flex items-center gap-1.5 border-brand-500/30 text-brand-400 hover:bg-brand-500/10"
+                        >
+                            <Users className="h-3.5 w-3.5" />
+                            Admin
+                        </Link>
                         <form action="/api/auth/signout" method="post">
                             <button
                                 type="submit"
