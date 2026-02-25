@@ -2,6 +2,8 @@
  * Types TypeScript dérivés du schéma PostgreSQL Supabase.
  * Ces types servent d'interface entre la DB et l'application.
  * Format compatible Supabase JS v2 + PostgREST v12.
+ *
+ * Schéma normalisé : sujets → taches → documents
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
@@ -62,7 +64,7 @@ export interface Database {
                         foreignKeyName: "exams_subject_id_fkey";
                         columns: ["subject_id"];
                         isOneToOne: false;
-                        referencedRelation: "subjects";
+                        referencedRelation: "sujets";
                         referencedColumns: ["id"];
                     }
                 ];
@@ -143,30 +145,83 @@ export interface Database {
                     }
                 ];
             };
-            subjects: {
+            // ─── Schéma normalisé des sujets ─────────────────────────────────
+            sujets: {
                 Row: {
                     id: string;
-                    title: string;
-                    task1_prompt: string;
-                    task2_prompt: string;
-                    task3_prompt: string;
+                    titre_combinaison: string;
                     created_at: string;
                 };
                 Insert: {
                     id?: string;
-                    title: string;
-                    task1_prompt: string;
-                    task2_prompt: string;
-                    task3_prompt: string;
+                    titre_combinaison: string;
                     created_at?: string;
                 };
                 Update: {
-                    title?: string;
-                    task1_prompt?: string;
-                    task2_prompt?: string;
-                    task3_prompt?: string;
+                    titre_combinaison?: string;
                 };
                 Relationships: [];
+            };
+            taches: {
+                Row: {
+                    id: string;
+                    sujet_id: string;
+                    numero_tache: number;
+                    titre_tache: string | null;
+                    consigne: string | null;
+                    type_tache: "simple" | "documentaire" | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    sujet_id: string;
+                    numero_tache: number;
+                    titre_tache?: string | null;
+                    consigne?: string | null;
+                    type_tache?: "simple" | "documentaire" | null;
+                    created_at?: string;
+                };
+                Update: {
+                    titre_tache?: string | null;
+                    consigne?: string | null;
+                    type_tache?: "simple" | "documentaire" | null;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "taches_sujet_id_fkey";
+                        columns: ["sujet_id"];
+                        isOneToOne: false;
+                        referencedRelation: "sujets";
+                        referencedColumns: ["id"];
+                    }
+                ];
+            };
+            documents: {
+                Row: {
+                    id: string;
+                    tache_id: string;
+                    titre_document: string | null;
+                    contenu: string;
+                };
+                Insert: {
+                    id?: string;
+                    tache_id: string;
+                    titre_document?: string | null;
+                    contenu: string;
+                };
+                Update: {
+                    titre_document?: string | null;
+                    contenu?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "documents_tache_id_fkey";
+                        columns: ["tache_id"];
+                        isOneToOne: false;
+                        referencedRelation: "taches";
+                        referencedColumns: ["id"];
+                    }
+                ];
             };
         };
         Views: Record<string, never>;
@@ -206,12 +261,43 @@ export interface AIFeedback {
 
 // ─── Domaine Examen ─────────────────────────────────────────────────────────
 
+/** Document de référence pour une tâche documentaire */
+export interface TaskDocument {
+    id: string;
+    titre_document: string | null;
+    contenu: string;
+}
+
+/** Tâche d'un sujet (normalisée) */
+export interface Tache {
+    id: string;
+    sujet_id: string;
+    numero_tache: 1 | 2 | 3;
+    titre_tache: string | null;
+    consigne: string | null;
+    type_tache: "simple" | "documentaire" | null;
+    documents: TaskDocument[];
+}
+
+/** Sujet complet avec ses tâches et documents */
+export interface Subject {
+    id: string;
+    titre_combinaison: string;
+    taches: Tache[];
+}
+
 export interface TaskConstraints {
     taskNumber: 1 | 2 | 3;
     minWords: number;
     maxWords: number;
     label: string;
     prompt: string;
+    /** Documents associés (tâche 3 documentaire) */
+    documents: TaskDocument[];
+    /** Titre de la tâche depuis la DB */
+    titre_tache: string | null;
+    /** Type de tâche */
+    type_tache: "simple" | "documentaire" | null;
 }
 
 export const TASK_CONSTRAINTS: TaskConstraints[] = [
@@ -222,6 +308,9 @@ export const TASK_CONSTRAINTS: TaskConstraints[] = [
         label: "Tâche 1 — Message informel",
         prompt:
             "Vous devez écrire un message informel à un ami pour lui décrire votre expérience récente au Canada. Utilisez un registre familier mais correct.",
+        documents: [],
+        titre_tache: null,
+        type_tache: "simple",
     },
     {
         taskNumber: 2,
@@ -230,14 +319,20 @@ export const TASK_CONSTRAINTS: TaskConstraints[] = [
         label: "Tâche 2 — Message semi-formel",
         prompt:
             "Vous devez écrire un courriel à votre employeur pour demander un congé. Utilisez un registre semi-formel.",
+        documents: [],
+        titre_tache: null,
+        type_tache: "simple",
     },
     {
         taskNumber: 3,
         minWords: 120,
         maxWords: 180,
-        label: "Tâche 3 — Message formel",
+        label: "Tâche 3 — Expression d'un point de vue",
         prompt:
             "Vous devez rédiger une lettre formelle à une institution (banque, mairie, école) pour faire une réclamation ou une demande officielle.",
+        documents: [],
+        titre_tache: null,
+        type_tache: "documentaire",
     },
 ];
 

@@ -5,6 +5,7 @@ import { useExamStore } from "@/store/examStore";
 import { ExamTimer } from "@/components/exam/ExamTimer";
 import { TaskEditor } from "@/components/exam/TaskEditor";
 import { TASK_CONSTRAINTS } from "@/types/database";
+import type { Subject, Tache, TaskDocument } from "@/types/database";
 import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { CheckCircle, Send, AlertTriangle } from "lucide-react";
@@ -35,8 +36,8 @@ export default function ExamPage() {
         const fetchSubjects = async () => {
             try {
                 const { data, error } = await supabase
-                    .from("subjects")
-                    .select("id, title")
+                    .from("sujets")
+                    .select("id, titre_combinaison")
                     .order("created_at", { ascending: false });
 
                 if (data) setAvailableSubjects(data);
@@ -49,6 +50,60 @@ export default function ExamPage() {
         fetchSubjects();
     }, [supabase]);
 
+    /**
+     * Charge un sujet complet avec ses taches et documents depuis Supabase,
+     * et le transforme en objet Subject normalisé pour le store.
+     */
+    const loadFullSubject = async (sujetId: string): Promise<Subject> => {
+        const { data, error } = await supabase
+            .from("sujets")
+            .select(`
+                id,
+                titre_combinaison,
+                taches (
+                    id,
+                    sujet_id,
+                    numero_tache,
+                    titre_tache,
+                    consigne,
+                    type_tache,
+                    documents (
+                        id,
+                        titre_document,
+                        contenu
+                    )
+                )
+            `)
+            .eq("id", sujetId)
+            .single();
+
+        if (error || !data) throw new Error("Impossible de charger le sujet complet.");
+
+        // Typer et trier les taches par numero_tache
+        const raw = data as any;
+        const taches: Tache[] = (raw.taches || [])
+            .sort((a: any, b: any) => a.numero_tache - b.numero_tache)
+            .map((t: any) => ({
+                id: t.id,
+                sujet_id: t.sujet_id,
+                numero_tache: t.numero_tache as 1 | 2 | 3,
+                titre_tache: t.titre_tache,
+                consigne: t.consigne,
+                type_tache: t.type_tache,
+                documents: (t.documents || []).map((d: any) => ({
+                    id: d.id,
+                    titre_document: d.titre_document,
+                    contenu: d.contenu,
+                })),
+            }));
+
+        return {
+            id: raw.id,
+            titre_combinaison: raw.titre_combinaison,
+            taches,
+        };
+    };
+
     // Créer une session d'examen en DB et démarrer le timer
     const handleStart = async () => {
         setIsStarting(true);
@@ -57,29 +112,25 @@ export default function ExamPage() {
             if (!user) { router.push("/login"); return; }
 
             // 1. Sélectionner le sujet
-            let subject;
+            let sujetId: string;
             if (selectedSubjectId === "random") {
                 // Sélection aléatoire
                 const { data, error } = await (supabase
-                    .from("subjects")
-                    .select("*") as any)
+                    .from("sujets")
+                    .select("id") as any)
                     .order('id', { ascending: Math.random() > 0.5 })
                     .limit(1)
                     .single();
-                subject = data;
-                if (error || !subject) throw new Error("Impossible de charger un sujet aléatoire.");
+                if (error || !data) throw new Error("Impossible de charger un sujet aléatoire.");
+                sujetId = data.id;
             } else {
-                // Sujet spécifique
-                const { data, error } = await supabase
-                    .from("subjects")
-                    .select("*")
-                    .eq("id", selectedSubjectId)
-                    .single();
-                subject = data;
-                if (error || !subject) throw new Error("Sujet introuvable.");
+                sujetId = selectedSubjectId;
             }
 
-            // 2. Upsert du profil au cas où
+            // 2. Charger le sujet complet avec taches et documents
+            const subject = await loadFullSubject(sujetId);
+
+            // 3. Upsert du profil au cas où
             const username =
                 user.user_metadata?.username ??
                 user.user_metadata?.full_name ??
@@ -90,7 +141,7 @@ export default function ExamPage() {
                 .from("profiles")
                 .upsert({ id: user.id, username }, { onConflict: "id", ignoreDuplicates: true });
 
-            // 3. Créer l'examen avec le subject_id
+            // 4. Créer l'examen avec le subject_id
             const { data: exam, error: examError } = await supabase
                 .from("exams")
                 .insert({
@@ -169,7 +220,7 @@ export default function ExamPage() {
                             <option value="random">🎲 Aléatoire</option>
                             {availableSubjects.map((s) => (
                                 <option key={s.id} value={s.id}>
-                                    📄 {s.title}
+                                    📄 {s.titre_combinaison}
                                 </option>
                             ))}
                         </select>

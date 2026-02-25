@@ -9,6 +9,8 @@ interface TaskEditorProps {
     constraints: TaskConstraints;
 }
 
+import { Task3Display } from "./Task3Display";
+
 /**
  * TaskEditor — Éditeur sécurisé avec :
  * - Blocage copier-coller (anti-triche)
@@ -59,12 +61,23 @@ export function TaskEditor({ constraints }: TaskEditorProps) {
         above: "border-red-500/60 focus:border-red-400",
     }[status];
 
+    // Déterminer si c'est une tâche documentaire (tâche 3 avec documents)
+    const isDocumentaire = constraints.type_tache === "documentaire" && constraints.documents.length > 0;
+
     return (
         <div className="flex flex-col gap-3 animate-fade-in">
             {/* Prompt de la tâche */}
-            <div className="rounded-xl border border-surface-border bg-surface-card/50 p-4">
-                <p className="text-sm text-gray-300 leading-relaxed">{constraints.prompt}</p>
-            </div>
+
+            {isDocumentaire ? (
+                <Task3Display
+                    consigne={constraints.prompt}
+                    documents={constraints.documents}
+                />
+            ) : (
+                <div className="rounded-xl border border-surface-border bg-surface-card/50 p-4">
+                    <p className="text-sm text-gray-300 leading-relaxed">{constraints.prompt}</p>
+                </div>
+            )}
 
             {/* Zone de texte */}
             <div className="relative">

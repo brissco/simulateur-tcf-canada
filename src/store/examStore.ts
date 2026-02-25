@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, devtools } from "zustand/middleware";
-import { EXAM_DURATION_SECONDS, type TaskConstraints, TASK_CONSTRAINTS } from "@/types/database";
+import { EXAM_DURATION_SECONDS, type TaskConstraints, type Subject, type Tache, TASK_CONSTRAINTS } from "@/types/database";
 import { countWords } from "@/lib/utils";
 
 // ─── Types du Store ──────────────────────────────────────────────────────────
@@ -11,13 +11,8 @@ export interface TaskDraft {
     wordCount: number;
 }
 
-export interface Subject {
-    id: string;
-    title: string;
-    task1_prompt: string;
-    task2_prompt: string;
-    task3_prompt: string;
-}
+// Re-export Subject from database types (normalisé avec taches + documents)
+export type { Subject } from "@/types/database";
 
 export type ExamPhase = "idle" | "running" | "submitted" | "results";
 
@@ -60,6 +55,13 @@ const createInitialTasks = (): Record<1 | 2 | 3, TaskDraft> => ({
     2: { taskNumber: 2, content: "", wordCount: 0 },
     3: { taskNumber: 3, content: "", wordCount: 0 },
 });
+
+// ─── Helper : trouver la tâche correspondante dans le sujet ───────────────
+
+function findTache(subject: Subject | null, taskNumber: 1 | 2 | 3): Tache | undefined {
+    if (!subject) return undefined;
+    return subject.taches.find((t) => t.numero_tache === taskNumber);
+}
 
 // ─── Store Zustand ────────────────────────────────────────────────────────────
 
@@ -141,11 +143,17 @@ export const useExamStore = create<ExamState>()(
                     const { subject } = get();
                     const base = TASK_CONSTRAINTS.find((t) => t.taskNumber === taskNumber)!;
 
-                    if (subject) {
-                        const prompt = taskNumber === 1 ? subject.task1_prompt :
-                            taskNumber === 2 ? subject.task2_prompt :
-                                subject.task3_prompt;
-                        return { ...base, prompt };
+                    const tache = findTache(subject, taskNumber);
+
+                    if (tache) {
+                        return {
+                            ...base,
+                            prompt: tache.consigne ?? base.prompt,
+                            label: tache.titre_tache ?? base.label,
+                            documents: tache.documents ?? [],
+                            titre_tache: tache.titre_tache,
+                            type_tache: tache.type_tache,
+                        };
                     }
 
                     return base;
