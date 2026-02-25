@@ -74,8 +74,15 @@ export function TaskEditor({ constraints }: TaskEditorProps) {
                     documents={constraints.documents}
                 />
             ) : (
-                <div className="rounded-xl border border-surface-border bg-surface-card/50 p-4">
-                    <p className="text-sm text-gray-300 leading-relaxed">{constraints.prompt}</p>
+                <div className="rounded-xl border border-surface-border bg-surface-card/50 p-4 space-y-3">
+                    {constraints.sujet_tache && (
+                        <p className="text-sm text-brand-300 font-medium leading-relaxed italic">
+                            « {constraints.sujet_tache} »
+                        </p>
+                    )}
+                    <p className="text-sm text-gray-300 leading-relaxed font-semibold">
+                        {constraints.prompt}
+                    </p>
                 </div>
             )}
 

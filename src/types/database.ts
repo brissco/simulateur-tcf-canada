@@ -169,6 +169,7 @@ export interface Database {
                     numero_tache: number;
                     titre_tache: string | null;
                     consigne: string | null;
+                    sujet_tache: string | null;
                     type_tache: "simple" | "documentaire" | null;
                     created_at: string;
                 };
@@ -178,12 +179,14 @@ export interface Database {
                     numero_tache: number;
                     titre_tache?: string | null;
                     consigne?: string | null;
+                    sujet_tache?: string | null;
                     type_tache?: "simple" | "documentaire" | null;
                     created_at?: string;
                 };
                 Update: {
                     titre_tache?: string | null;
                     consigne?: string | null;
+                    sujet_tache?: string | null;
                     type_tache?: "simple" | "documentaire" | null;
                 };
                 Relationships: [
@@ -275,6 +278,7 @@ export interface Tache {
     numero_tache: 1 | 2 | 3;
     titre_tache: string | null;
     consigne: string | null;
+    sujet_tache: string | null;
     type_tache: "simple" | "documentaire" | null;
     documents: TaskDocument[];
 }
@@ -296,6 +300,8 @@ export interface TaskConstraints {
     documents: TaskDocument[];
     /** Titre de la tâche depuis la DB */
     titre_tache: string | null;
+    /** Sujet (contexte) de la tâche depuis la DB */
+    sujet_tache: string | null;
     /** Type de tâche */
     type_tache: "simple" | "documentaire" | null;
 }
@@ -310,6 +316,7 @@ export const TASK_CONSTRAINTS: TaskConstraints[] = [
             "Vous devez écrire un message informel à un ami pour lui décrire votre expérience récente au Canada. Utilisez un registre familier mais correct.",
         documents: [],
         titre_tache: null,
+        sujet_tache: null,
         type_tache: "simple",
     },
     {
@@ -321,6 +328,7 @@ export const TASK_CONSTRAINTS: TaskConstraints[] = [
             "Vous devez écrire un courriel à votre employeur pour demander un congé. Utilisez un registre semi-formel.",
         documents: [],
         titre_tache: null,
+        sujet_tache: null,
         type_tache: "simple",
     },
     {
@@ -332,6 +340,7 @@ export const TASK_CONSTRAINTS: TaskConstraints[] = [
             "Vous devez rédiger une lettre formelle à une institution (banque, mairie, école) pour faire une réclamation ou une demande officielle.",
         documents: [],
         titre_tache: null,
+        sujet_tache: null,
         type_tache: "documentaire",
     },
 ];

@@ -66,6 +66,7 @@ export default function ExamPage() {
                     numero_tache,
                     titre_tache,
                     consigne,
+                    sujet_tache,
                     type_tache,
                     documents (
                         id,
@@ -89,6 +90,7 @@ export default function ExamPage() {
                 numero_tache: t.numero_tache as 1 | 2 | 3,
                 titre_tache: t.titre_tache,
                 consigne: t.consigne,
+                sujet_tache: t.sujet_tache,
                 type_tache: t.type_tache,
                 documents: (t.documents || []).map((d: any) => ({
                     id: d.id,

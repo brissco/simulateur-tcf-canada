@@ -152,6 +152,7 @@ export const useExamStore = create<ExamState>()(
                             label: tache.titre_tache ?? base.label,
                             documents: tache.documents ?? [],
                             titre_tache: tache.titre_tache,
+                            sujet_tache: tache.sujet_tache,
                             type_tache: tache.type_tache,
                         };
                     }

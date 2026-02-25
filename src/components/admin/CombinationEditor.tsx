@@ -16,6 +16,7 @@ interface TacheInput {
     numero_tache: 1 | 2 | 3;
     titre_tache: string;
     consigne: string;
+    sujet_tache: string;
     type_tache: "simple" | "documentaire";
     documents: DocumentInput[];
 }
@@ -38,9 +39,9 @@ export function CombinationEditor({ onSuccess, initialData }: CombinationEditorP
     const [titreCombinaison, setTitreCombinaison] = useState(initialData?.titre_combinaison || "");
     const [taches, setTaches] = useState<TacheInput[]>(
         initialData?.taches || [
-            { numero_tache: 1, titre_tache: "", consigne: "", type_tache: "simple", documents: [] },
-            { numero_tache: 2, titre_tache: "", consigne: "", type_tache: "simple", documents: [] },
-            { numero_tache: 3, titre_tache: "", consigne: "", type_tache: "documentaire", documents: [] },
+            { numero_tache: 1, titre_tache: "", consigne: "", sujet_tache: "", type_tache: "simple", documents: [] },
+            { numero_tache: 2, titre_tache: "", consigne: "", sujet_tache: "", type_tache: "simple", documents: [] },
+            { numero_tache: 3, titre_tache: "", consigne: "", sujet_tache: "", type_tache: "documentaire", documents: [] },
         ]
     );
 
@@ -97,6 +98,7 @@ export function CombinationEditor({ onSuccess, initialData }: CombinationEditorP
                         numero_tache: tache.numero_tache,
                         titre_tache: tache.titre_tache,
                         consigne: tache.consigne,
+                        sujet_tache: tache.sujet_tache,
                         type_tache: tache.type_tache,
                     })
                     .select()
@@ -147,7 +149,7 @@ export function CombinationEditor({ onSuccess, initialData }: CombinationEditorP
                     value={titreCombinaison}
                     onChange={(e) => setTitreCombinaison(e.target.value)}
                     placeholder="Ex: Combinaison d'entraînement #1"
-                    className="w-full bg-surface-dark border border-surface-border rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50"
+                    className="input"
                 />
             </div>
 
@@ -156,7 +158,7 @@ export function CombinationEditor({ onSuccess, initialData }: CombinationEditorP
                     <div key={tache.numero_tache} className="card bg-surface-card border-surface-border overflow-hidden">
                         <button
                             onClick={() => setExpandedTache(expandedTache === tache.numero_tache ? null : tache.numero_tache)}
-                            className="w-full flex items-center justify-between p-4 bg-surface-dark/30 hover:bg-surface-dark/50 transition-colors"
+                            className="w-full flex items-center justify-between p-4 bg-surface/30 hover:bg-surface/50 transition-colors"
                         >
                             <div className="flex items-center gap-3">
                                 <span className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-500/20 text-brand-400 font-bold text-sm">
@@ -180,20 +182,33 @@ export function CombinationEditor({ onSuccess, initialData }: CombinationEditorP
                                         value={tache.titre_tache}
                                         onChange={(e) => handleTacheChange(index, "titre_tache", e.target.value)}
                                         placeholder="Ex: Message informel à un ami"
-                                        className="w-full bg-surface-dark border border-surface-border rounded-lg px-4 py-2 text-sm text-white"
+                                        className="input text-sm"
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
-                                        Consigne
+                                        Sujet (contexte)
+                                    </label>
+                                    <textarea
+                                        value={tache.sujet_tache}
+                                        onChange={(e) => handleTacheChange(index, "sujet_tache", e.target.value)}
+                                        placeholder="Ex: Vous allez fêter votre anniversaire. Vous envoyez un message à vos amis pour les inviter."
+                                        rows={3}
+                                        className="input min-h-[80px] resize-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                                        Consigne (instructions)
                                     </label>
                                     <textarea
                                         value={tache.consigne}
                                         onChange={(e) => handleTacheChange(index, "consigne", e.target.value)}
-                                        placeholder="Saisissez la consigne complète..."
+                                        placeholder="Ex: Vous leur décrivez le programme de la soirée et leur demandez de l’aide pour l’organisation"
                                         rows={4}
-                                        className="w-full bg-surface-dark border border-surface-border rounded-lg px-4 py-2 text-sm text-white resize-none"
+                                        className="input min-h-[100px] resize-none"
                                     />
                                 </div>
 
@@ -204,7 +219,7 @@ export function CombinationEditor({ onSuccess, initialData }: CombinationEditorP
                                     <select
                                         value={tache.type_tache}
                                         onChange={(e) => handleTacheChange(index, "type_tache", e.target.value)}
-                                        className="w-full bg-surface-dark border border-surface-border rounded-lg px-4 py-2 text-sm text-white"
+                                        className="input"
                                     >
                                         <option value="simple">Simple</option>
                                         <option value="documentaire">Documentaire (avec documents)</option>
@@ -224,14 +239,14 @@ export function CombinationEditor({ onSuccess, initialData }: CombinationEditorP
                                         </div>
 
                                         {tache.documents.map((doc, docIndex) => (
-                                            <div key={docIndex} className="p-4 rounded-xl border border-surface-border bg-surface-dark/30 space-y-3">
+                                            <div key={docIndex} className="p-4 rounded-xl border border-surface-border bg-surface/30 space-y-3">
                                                 <div className="flex items-center justify-between gap-4">
                                                     <input
                                                         type="text"
                                                         value={doc.titre_document}
                                                         onChange={(e) => handleDocumentChange(index, docIndex, "titre_document", e.target.value)}
                                                         placeholder="Titre du document"
-                                                        className="flex-1 bg-surface-dark border border-surface-border rounded-lg px-3 py-1.5 text-xs text-white"
+                                                        className="input text-xs py-1.5"
                                                     />
                                                     <button
                                                         onClick={() => removeDocument(index, docIndex)}
@@ -245,7 +260,7 @@ export function CombinationEditor({ onSuccess, initialData }: CombinationEditorP
                                                     onChange={(e) => handleDocumentChange(index, docIndex, "contenu", e.target.value)}
                                                     placeholder="Contenu du document (Supporte le HTML basique)"
                                                     rows={3}
-                                                    className="w-full bg-surface-dark border border-surface-border rounded-lg px-3 py-2 text-xs text-white resize-none"
+                                                    className="input text-xs py-1.5 resize-none"
                                                 />
                                             </div>
                                         ))}
